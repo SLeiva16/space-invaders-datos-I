@@ -1,6 +1,5 @@
 package client.screens;
 
-
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,6 +10,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+
 
 public class LoginScreen {
 
@@ -31,11 +31,12 @@ public class LoginScreen {
         root.setPadding(new Insets(45));
         root.setStyle("-fx-background-color: black");
 
+
         Label title = new Label("Space Invader");
         title.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
         title.setTextFill(Color.GREEN);
 
-        Label subtitle = new Label("Conectado al Serveer");
+        Label subtitle = new Label("Conectado al Server");
         subtitle.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
         subtitle.setTextFill(Color.GRAY);
 
@@ -47,6 +48,7 @@ public class LoginScreen {
         Button loginBtn = styledButton("Iniciar Sesion", "#00ff88" );
         Button registraseBtn = styledButton("Registrarse", "#00ff88" );
 
+        //Mensajes de estado(Exito o errores)
         statusLabel = new Label("");
         statusLabel.setFont(Font.font("Verdana", FontWeight.NORMAL, 12));
         statusLabel.setTextFill(Color.GREEN);
@@ -57,15 +59,18 @@ public class LoginScreen {
                 loginBtn, registraseBtn,
                 statusLabel);
 
-
         Scene scene = new Scene(root, 500,500);
         stage.setScene(scene);
         stage.show();
+
     }
+
+
 
     /*
           =====Style=====
     */
+    //Entrada de texto de una sola linea
     private TextField styledField(String prompt) {
         TextField f = new TextField();
         styleControl(f, prompt);
@@ -74,10 +79,10 @@ public class LoginScreen {
 
     private void styleControl(Control c, String prompt) {
         c.setStyle(
-                "-fx-background-color: #161b22;" +
-                        "-fx-text-fill: #c9d1d9;" +
-                        "-fx-border-color: #30363d;" +
-                        "-fx-border-radius: 4;" +
+                "-fx-background-color: #161b22;" +      //fondo
+                        "-fx-text-fill: #c9d1d9;" +     //texto
+                        "-fx-border-color: #30363d;" +  //borde
+                        "-fx-border-radius: 4;" +       //bordes redondos
                         "-fx-background-radius: 4;" +
                         "-fx-font-family: Verdana;" +
                         "-fx-font-size: 13;"

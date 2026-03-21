@@ -14,6 +14,7 @@ public class GameServer {
             System.out.println("El server inicio en el puerto: " + PORT);
 
             while (true) {
+                //El servidor se queda bloqueado hasta que un cliente se conecte
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("[Server] Se conecto: " +
                         clientSocket.getInetAddress().getHostName());

@@ -10,6 +10,7 @@ public class GameClient extends Application {
         primaryStage.setTitle("Space Invaders Game");
         primaryStage.setResizable(false);
 
+        //Crea la pantalla login pasandole la ventana principal
         LoginScreen loginScreen = new LoginScreen(primaryStage);
         loginScreen.show();
 
