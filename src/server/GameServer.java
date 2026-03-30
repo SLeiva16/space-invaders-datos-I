@@ -1,5 +1,6 @@
 package server;
 
+import javax.xml.crypto.Data;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -8,6 +9,8 @@ public class GameServer {
     private static final int PORT = 12345;
 
     public static void main(String[] args) {
+
+        DatabaseManager db = new DatabaseManager();
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)){
             System.out.println("Space Invaders Game");
@@ -18,6 +21,9 @@ public class GameServer {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("[Server] Se conecto: " +
                         clientSocket.getInetAddress().getHostName());
+
+                ClientHandler handler = new ClientHandler(clientSocket, db);
+                new Thread(handler).start();
 
             }
         } catch (Exception e) {

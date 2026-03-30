@@ -32,9 +32,18 @@ public class DatabaseManager {
 
 
     public synchronized boolean register(String username, String password) {
-        if (findPlayer(username) != null) return false;
+        System.out.println("Database Register llamado con: " + username);
+
+        if (findPlayer(username) != null) {
+            System.out.println("Falso");
+            return false;
+        }
         Player p = new Player(username, hash(password));  //Crea al jugador con la contrase;a hasheada
         players.add(p);
+
+        System.out.println("Tamaño de la lista players después de agregar " + players.size());
+
+        System.out.println("Database Usuario agregado, guardando...");
         save();
         return true;
     }
@@ -77,10 +86,20 @@ public class DatabaseManager {
     // ====== Private helpers ======
 
     private Player findPlayer(String username) {
+        System.out.println("Database buscando al usuario: " + username);
+
         for (int i = 0; i < players.size(); i++) {
             Player p = players.get(i);
-            if (p.getUsername().equals(username)) return p;
+
+            System.out.println("Comparando con " + p.getUsername());
+
+            if (p.getUsername().equals(username)) {
+                System.out.println("Database Usuario encontado");
+                return p;
+            }
         }
+
+        System.out.println("Usuario no encontado.");
         return null;
     }
 

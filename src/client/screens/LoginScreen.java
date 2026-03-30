@@ -10,7 +10,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
-
+import client.ClientConnection;
 
 public class LoginScreen {
 
@@ -48,6 +48,49 @@ public class LoginScreen {
         Button loginBtn = styledButton("Iniciar Sesion", "#00ff88" );
         Button registraseBtn = styledButton("Registrarse", "#00ff88" );
 
+        loginBtn.setOnAction(e ->{
+            try{
+                String ip = ipField.getText().trim();
+                String username = usernameField.getText().trim();
+                String password = passwordField.getText().trim();
+
+                if (ip.isEmpty() || username.isEmpty() || password.isEmpty()){
+                    statusLabel.setText("Completar todos los campos es necesario.");
+                    statusLabel.setTextFill(Color.RED);
+                    return;
+
+                }
+
+                ClientConnection client = new ClientConnection(ip, PORT);
+                boolean success = client.login(username, password);
+
+                if (success){
+                    statusLabel.setText("Login completado");
+                    statusLabel.setTextFill(Color.GREEN);
+
+                    new AvtSelectionScreen(stage, username).show();
+
+                }else{
+                    statusLabel.setText("Falla al hacer login, reintentar.");
+                    statusLabel.setTextFill(Color.RED);
+
+                }
+
+
+            }catch(Exception ex){
+                statusLabel.setText("Error de conexión con el servidor");
+                statusLabel.setTextFill(Color.RED);
+                ex.printStackTrace();
+
+            }
+        });
+
+        registraseBtn.setOnAction(XD ->{
+            new RegisterScreen(stage, ipField.getText()).show();
+        });
+
+
+
         //Mensajes de estado(Exito o errores)
         statusLabel = new Label("");
         statusLabel.setFont(Font.font("Verdana", FontWeight.NORMAL, 12));
@@ -64,6 +107,8 @@ public class LoginScreen {
         stage.show();
 
     }
+
+
 
 
 
