@@ -1,9 +1,10 @@
 package game.ui;
 
 import javax.swing.*;
-import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.Random;
 
 // -------------------------------
 // Clase GamePanel
@@ -25,14 +26,17 @@ import java.awt.event.*;
 
 public class GamePanel extends JPanel implements ActionListener 
 {
-
+    private ArrayList<Attack> attacks = new ArrayList<>(); //almacenar los ataques activos en el juego
+    private Random random = new Random();   // Para generar ataques aleatorios
     private GameWindow gameWindow;     // Referencia a la ventana principal
     private Timer timer;               // Temporizador para animaciones
     private int playerX = 400;         // Posición inicial de la nave (X)
     private int playerY = 550;         // Posición inicial de la nave (Y)
     private int bulletY = -1;          // Posición del proyectil (-1 = no activo)
     private int enemyX = 200;          // Posición inicial del enemigo
-    private int enemyY = 100;
+    private int enemyY = 100;           // Posición inicial del enemigo
+    private int lives = 3;              // Vidas del jugador
+    private String activeDefense = "";  // Defensa actual activada
 
     public GamePanel(GameWindow gameWindow) // Constructor con referencia a GameWindow
     {       
@@ -54,7 +58,15 @@ public class GamePanel extends JPanel implements ActionListener
                 else if (e.getKeyCode() == KeyEvent.VK_RIGHT) // Flecha derecha
                 {  
                     playerX += 10;     // Mover nave a la derecha
+                }
+                else if (e.getKeyCode() == KeyEvent.VK_UP) // Flecha arriba
+                {  
+                    playerY -= 10;     // Mover nave hacia arriba
                 } 
+                else if (e.getKeyCode() == KeyEvent.VK_DOWN) // Flecha abajo
+                {  
+                    playerY += 10;     // Mover nave hacia abajo
+                }
                 else if (e.getKeyCode() == KeyEvent.VK_SPACE) // Barra espaciadora
                 {  
                     if (bulletY == -1) // Si no hay proyectil activo
@@ -62,10 +74,24 @@ public class GamePanel extends JPanel implements ActionListener
                         bulletY = playerY;   // Activar proyectil
                     }
                 }
+                else if (e.getKeyCode() == KeyEvent.VK_Q)  // Tecla Q para activar defensa
+                {
+                    activeDefense = "DDoS";
+                    System.out.println("Defensa activada: Firewall (bloquea DDoS)");
+                } 
+                else if (e.getKeyCode() == KeyEvent.VK_W)  // Tecla W para activar defensa
+                {
+                    activeDefense = "Malware";
+                    System.out.println("Defensa activada: Antivirus (bloquea Malware)");
+                } 
+                else if (e.getKeyCode() == KeyEvent.VK_E)  // Tecla E para activar defensa
+                {
+                    activeDefense = "Credential";
+                    System.out.println("Defensa activada: Crypto Shield (bloquea Credential Attack)");
+                }
 
-                repaint(); // Redibujar cada vez que se mueve o dispara
+                repaint(); // Redibujar cada vez que se mueve, dispara o activa defensa
             }
-
         });
 
         // Temporizador para animar proyectiles y enemigos
@@ -98,19 +124,31 @@ public class GamePanel extends JPanel implements ActionListener
             g.setColor(Color.YELLOW);
             g.fillRect(playerX - 2, bulletY, 4, 10);
         }
+
+        // Dibujar ataques enemigos
+        for (Attack attack : attacks)
+        {
+            attack.draw(g);    // Dibujar cada ataque en pantalla
+        }
+
+        // HUD: mostrar vidas y defensa activa (fuera del área verde)
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+        g.drawString("Vidas: " + lives, 60, 40);
+        g.drawString("Defensa activa: " + (activeDefense.isEmpty() ? "Ninguna" : activeDefense), 200, 40);
+
     }
 
 
-
-
-    @Override       // Método que se ejecuta cada vez que el temporizador se activa (cada 30 ms)
+    @Override
     public void actionPerformed(ActionEvent e) 
     {
         // Animar proyectil
         if (bulletY != -1) 
         {
             bulletY -= 10;   // Subir proyectil
-            if (bulletY < 0) {
+            if (bulletY < 0) 
+            {
                 bulletY = -1;   // Desactivar proyectil al salir de pantalla
             }
         }
@@ -122,6 +160,47 @@ public class GamePanel extends JPanel implements ActionListener
             enemyX = 200;   // Reiniciar posición
         }
 
+        // Generar ataques enemigos aleatorios
+        if (random.nextInt(100) < 5) // 5% de probabilidad cada frame
+        {
+            String[] types = {"DDoS", "Malware", "Credential"}; // Tipos de ataques disponibles
+            String type = types[random.nextInt(types.length)];
+            attacks.add(new Attack(type, random.nextInt(750) + 50, 50, 2)); // Posición aleatoria en X
+        }
+
+        // Mover ataques existentes
+        for (Attack attack : attacks) 
+        {
+            attack.move();
+        }
+
+        // Revisar colisiones de ataques
+        ArrayList<Attack> toRemove = new ArrayList<>();
+        for (Attack attack : attacks) 
+        {
+            // Si el ataque llega a la altura de la nave
+            if (attack.getY() >= playerY) 
+            {
+                if (attack.getType().equals(activeDefense)) 
+                {
+                    // Defensa correcta → eliminar ataque
+                    toRemove.add(attack);
+                    System.out.println("Ataque bloqueado: " + attack.getType());
+                } 
+                else 
+                {
+                    // Defensa incorrecta → perder vida
+                    lives--;
+                    toRemove.add(attack);
+                    System.out.println("Impacto recibido. Vidas restantes: " + lives);
+                }
+            }
+        }
+
+        // Eliminar ataques procesados
+        attacks.removeAll(toRemove);
+
         repaint(); // Redibujar cada frame
     }
+    
 }
