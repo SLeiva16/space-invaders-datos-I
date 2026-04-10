@@ -40,6 +40,9 @@ public class GameWindow extends JFrame      // Hereda de JFrame para crear la ve
         MapPanel mapPanel = new MapPanel(this);     // Crear una instancia del panel de selección de mapa con referencia a GameWindow
         mainPanel.add(mapPanel, "Map");             // Agregar el panel de mapa al panel principal con el nombre "Map"
 
+        GamePanel gamePanel = new GamePanel(this);  // Crear una instancia del panel de juego con referencia a GameWindow
+        mainPanel.add(gamePanel, "Game");       // Agregar el panel de juego al panel principal con el nombre "Game"
+
 
         // Mostrar el panel de login al iniciar
         showPanel("Login");                  // Mostrarlo al iniciar 
