@@ -1,10 +1,11 @@
-package game.ui;
+package game.ui;       
 
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
+import java.awt.GridLayout;     // Importar la clase GridLayout para organizar los componentes en una cuadrícula
+import javax.swing.JButton;     // Importar la clase JButton para crear botones en la interfaz gráfica
+import javax.swing.JLabel;      // Importar la clase JLabel para crear etiquetas de texto en la interfaz gráfica
+import javax.swing.JPanel;      // Importar la clase JPanel para crear paneles que contengan otros componentes en la interfaz gráfica
+import javax.swing.JPasswordField;      // Importar la clase JPasswordField para crear un campo de texto que oculte la entrada, ideal para contraseñas
+import javax.swing.JTextField;          // Importar la clase JTextField para crear un campo de texto para la entrada de datos, como el nombre de usuario
 
 // -------------------------------
 // Clase LoginPanel
