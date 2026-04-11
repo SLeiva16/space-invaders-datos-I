@@ -16,14 +16,6 @@ import java.util.Random;
 // -------------------------------
 
 
-// -----------------------------------------------
-// GamePanel.java
-// -----------------------------------------------
-// Panel principal del juego.
-// Dibuja la nave, enemigos y proyectiles usando Java 2D.
-// Controla el movimiento con teclas y actualiza la pantalla.
-// -----------------------------------------------
-
 public class GamePanel extends JPanel implements ActionListener 
 {
     private ArrayList<Attack> attacks = new ArrayList<>(); //almacenar los ataques activos en el juego
@@ -37,6 +29,9 @@ public class GamePanel extends JPanel implements ActionListener
     private int enemyY = 100;           // Posición inicial del enemigo
     private int lives = 3;              // Vidas del jugador
     private String activeDefense = "";  // Defensa actual activada
+    private int score = 0;              // Puntuación del jugador
+    private int blockedAttacks = 0;     // Contador de ataques bloqueados
+
 
     public GamePanel(GameWindow gameWindow) // Constructor con referencia a GameWindow
     {       
@@ -121,8 +116,8 @@ public class GamePanel extends JPanel implements ActionListener
         // Dibujar el proyectil si está activo
         if (bulletY != -1) 
         {
-            g.setColor(Color.YELLOW);
-            g.fillRect(playerX - 2, bulletY, 4, 10);
+            g.setColor(Color.RED);   // Proyectil representado por una línea roja
+            g.drawLine(playerX, bulletY, playerX, bulletY - 10);    
         }
 
         // Dibujar ataques enemigos
@@ -133,10 +128,19 @@ public class GamePanel extends JPanel implements ActionListener
 
         // HUD: mostrar vidas y defensa activa (fuera del área verde)
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-        g.drawString("Vidas: " + lives, 60, 40);
-        g.drawString("Defensa activa: " + (activeDefense.isEmpty() ? "Ninguna" : activeDefense), 200, 40);
+        g.setFont(new Font("Arial", Font.BOLD, 14));    // Fuente para el HUD
+        g.drawString("Vidas: " + lives, 60, 40);        // Mostrar vidas restantes en el HUD
+        g.drawString("Defensa activa: " + (activeDefense.isEmpty() ? "Ninguna" : activeDefense), 200, 40);  // Mostrar defensa activa en el HUD
+        g.drawString("Puntuación: " + score, 60, 60);
+        g.drawString("Ataques bloqueados: " + blockedAttacks, 200, 60); // Mostrar el número de ataques bloqueados en el HUD
 
+        // Condición de fin de juego
+        if (lives <= 0)         // Si el jugador pierde todas las vidas, mostrar mensaje de "Game Over"
+        {
+            g.setColor(Color.RED);      // Mensaje de "Game Over" en rojo
+            g.setFont(new Font("Arial", Font.BOLD, 30));    // Fuente grande para el mensaje de fin de juego
+            g.drawString("GAME OVER", 300, 300);            // Mostrar mensaje de fin de juego en el centro del panel
+        }
     }
 
 
@@ -183,9 +187,11 @@ public class GamePanel extends JPanel implements ActionListener
             {
                 if (attack.getType().equals(activeDefense)) 
                 {
-                    // Defensa correcta → eliminar ataque
+                    // Defensa correcta → eliminar ataque y sumar puntos
                     toRemove.add(attack);
-                    System.out.println("Ataque bloqueado: " + attack.getType());
+                    blockedAttacks++;
+                    score += 10;   // Sumar puntos por ataque bloqueado
+                    System.out.println("Ataque bloqueado: " + attack.getType() + " | Puntos: " + score);
                 } 
                 else 
                 {
@@ -199,7 +205,7 @@ public class GamePanel extends JPanel implements ActionListener
 
         // Eliminar ataques procesados
         attacks.removeAll(toRemove);
-
+        
         repaint(); // Redibujar cada frame
     }
     
