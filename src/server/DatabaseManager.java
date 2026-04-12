@@ -30,7 +30,6 @@ public class DatabaseManager {
 
 
 
-
     public synchronized boolean register(String username, String password) {
         System.out.println("Database Register llamado con: " + username);
 

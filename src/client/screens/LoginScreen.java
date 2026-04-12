@@ -61,14 +61,15 @@ public class LoginScreen {
 
                 }
 
-                ClientConnection client = new ClientConnection(ip, PORT);
-                boolean success = client.login(username, password);
+                ClientConnection conexion = new ClientConnection(ip, PORT);
+                boolean success = conexion.login(username, password);
 
                 if (success){
                     statusLabel.setText("Login completado");
                     statusLabel.setTextFill(Color.GREEN);
 
-                    new AvtSelectionScreen(stage, username).show();
+                    AvtSelectionScreen avatarScreen = new AvtSelectionScreen(stage, username, conexion);
+                    avatarScreen.show();
 
                 }else{
                     statusLabel.setText("Falla al hacer login, reintentar.");
