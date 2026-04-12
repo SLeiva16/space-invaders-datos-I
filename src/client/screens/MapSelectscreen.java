@@ -39,7 +39,7 @@ public class MapSelectscreen
         title.setTextFill(Color.GREEN);
 
         // Mapa 1 — verde
-        java.awt.Button btnMapa1 = new Button("Data Center Dojo");
+        Button btnMapa1 = new Button("Data Center Dojo");
         btnMapa1.setPrefSize(160, 80);
         btnMapa1.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
         btnMapa1.setStyle(
@@ -61,11 +61,11 @@ public class MapSelectscreen
                         "-fx-border-color: #58a6ff;" +
                         "-fx-border-radius: 4;" +
                         "-fx-background-radius: 4;" +
-                        "-fx-cursor: hand;"
+                        "-fx-cursor: hand;");
 
         btnMapa1.setOnAction(e -> goToGame("Mapa1"));   // Acción para el botón del Mapa 1
         btnMapa2.setOnAction(e -> goToGame("Mapa 2"));      // Acción para el botón del Mapa 2
-        );
+
 
 
 
