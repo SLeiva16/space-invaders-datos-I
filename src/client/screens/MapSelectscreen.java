@@ -13,7 +13,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
-public class MapSelectscreen {
+public class MapSelectscreen 
+{
 
     private final Stage stage;
     private final String username;
@@ -38,7 +39,7 @@ public class MapSelectscreen {
         title.setTextFill(Color.GREEN);
 
         // Mapa 1 — verde
-        Button btnMapa1 = new Button("Data Center Dojo");
+        java.awt.Button btnMapa1 = new Button("Data Center Dojo");
         btnMapa1.setPrefSize(160, 80);
         btnMapa1.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
         btnMapa1.setStyle(
@@ -61,6 +62,9 @@ public class MapSelectscreen {
                         "-fx-border-radius: 4;" +
                         "-fx-background-radius: 4;" +
                         "-fx-cursor: hand;"
+
+        btnMapa1.setOnAction(e -> goToGame("Mapa1"));   // Acción para el botón del Mapa 1
+        btnMapa2.setOnAction(e -> goToGame("Mapa 2"));      // Acción para el botón del Mapa 2
         );
 
 
@@ -73,5 +77,10 @@ public class MapSelectscreen {
         stage.setScene(new Scene(root, 480, 260));
     }
 
+    private void goToGame(String mapa) // Método para iniciar el juego con el mapa seleccionado
+    {
+        GameScreen gameScreen = new GameScreen(stage, username, avatar, mapa, conexion);    // Crear una nueva instancia de GameScreen con la información del usuario, el mapa seleccionado y la conexión al servidor
+        gameScreen.show();
+    }
 
 }
