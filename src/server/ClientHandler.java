@@ -1,6 +1,7 @@
 package server;
 import Models.Message;
 import com.google.gson.Gson;
+
 import java.io.*;
 import java.net.Socket;
 
@@ -46,6 +47,14 @@ public class ClientHandler implements Runnable {
     private DatabaseManager db;
     private Gson gson;
 
+    // Referencia al oponente — la asigna MatchManager cuando hay pareja
+    private ClientHandler opponent;
+    private PrintWriter out;
+
+    // Para saber si este jugador ya termino
+    private boolean gameOver = false;
+    private String username;
+
     public ClientHandler(Socket socket, DatabaseManager db){
         this.socket = socket;
         this.db = db;
@@ -65,7 +74,7 @@ public class ClientHandler implements Runnable {
                 Message message = gson.fromJson(json, Message.class);
                 Message answer = new Message();
 
-                switch (message.type){
+                switch (message.type) {
 
                     case "LOGIN":
                         boolean loginok = db.authenticate(message.username, message.password);
@@ -88,6 +97,55 @@ public class ClientHandler implements Runnable {
                         answer.success = true;
                         break;
 
+                    // ── Nuevo: buscar partida ─────────────────────────────────
+                    case "FIND_MATCH":
+                        System.out.println("[Match] " + message.username + " busca partida.");
+                        this.username = message.username;
+                        answer.type = "WAITING";
+                        answer.success = true;
+                        out.println(gson.toJson(answer));
+                        // Agregar a la cola — MatchManager notifica cuando hay pareja
+                        Match.addPlayer(this);
+                        continue; // no mandar respuesta doble
+
+                        // ── Nuevo: estado del juego en tiempo real ────────────────
+                    case "GAME_STATE":
+                        // Retransmitir al oponente si existe
+                        if (opponent != null) {
+                            Message opState = new Message();
+                            opState.type = "OPPONENT_STATE";
+                            opState.opponentUsername = message.username;
+                            opState.opponentLives = message.lives;
+                            opState.opponentScore = message.score;
+                            opState.opponentGameOver = message.isGameOver;
+                            opponent.sendMessage(opState);
+                        }
+                        continue; // no necesita respuesta directa
+
+                        // ── Nuevo: jugador terminó ────────────────────────────────
+                    case "GAME_OVER":
+                        this.gameOver = true;
+                        System.out.println("[Match] " + message.username + " terminó. Score: " + message.score);
+
+                        // Guardar estadísticas
+                        db.saveSessionResult(message.username, message.score, 0, 0, 0);
+
+                        // Notificar al oponente
+                        if (opponent != null) {
+                            Message opOver = new Message();
+                            opOver.type = "OPPONENT_STATE";
+                            opOver.opponentUsername = message.username;
+                            opOver.opponentScore = message.score;
+                            opOver.opponentGameOver = true;
+                            opponent.sendMessage(opOver);
+
+                            // Si el oponente también terminó → mandar resumen a ambos
+                            if (opponent.gameOver) {
+                                sendSessionEnd(message.score, opponent);
+                            }
+                        }
+                        continue;
+
                     default:
                         answer.type = "ERROR";
                         answer.success = false;
@@ -104,4 +162,45 @@ public class ClientHandler implements Runnable {
         }
     }
 
+// ── Métodos públicos usados por MatchManager y otros handlers ─────────────
+
+    /** Enviar un mensaje a este cliente. */
+    public synchronized void sendMessage(Message message) {
+        if (out != null) {
+            out.println(gson.toJson(message));
+        }
+    }
+
+    /** Asignar oponente (llamado por MatchManager). */
+    public void setOpponent(ClientHandler opponent) {
+        this.opponent = opponent;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public boolean isGameOver() {
+        return gameOver;
+    }
+
+    // ── Privados ──────────────────────────────────────────────────────────────
+
+    /** Mandar resumen final a ambos jugadores. */
+    private void sendSessionEnd(int myScore, ClientHandler opponent) {
+        int opScore = 0; // el oponente ya guardó su score antes
+
+        String winner = myScore >= opScore ? username : opponent.getUsername();
+
+        Message end = new Message();
+        end.type = "SESSION_END";
+        end.username = winner;       // ganador
+        end.score = myScore;
+        end.opponentScore = opScore;
+
+        this.sendMessage(end);
+        opponent.sendMessage(end);
+
+        System.out.println("[Match] Sesión terminada. Ganador: " + winner);
+    }
 }

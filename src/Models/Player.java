@@ -1,5 +1,7 @@
 package Models;
 
+//Datos de cada jugador que va directamente para usarlos en el database.json
+
 public class Player {
 
     //Datos guardados para cada Jugador
