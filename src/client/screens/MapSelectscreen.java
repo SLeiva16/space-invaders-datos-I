@@ -63,8 +63,8 @@ public class MapSelectscreen
                         "-fx-background-radius: 4;" +
                         "-fx-cursor: hand;");
 
-        btnMapa1.setOnAction(e -> goToGame("Mapa1"));   // Acción para el botón del Mapa 1
-        btnMapa2.setOnAction(e -> goToGame("Mapa 2"));      // Acción para el botón del Mapa 2
+        btnMapa1.setOnAction(e -> goToWaiting("Mapa1"));   // Acción para el botón del Mapa 1
+        btnMapa2.setOnAction(e -> goToWaiting("Mapa 2"));      // Acción para el botón del Mapa 2
 
 
 
@@ -77,10 +77,9 @@ public class MapSelectscreen
         stage.setScene(new Scene(root, 480, 260));
     }
 
-    private void goToGame(String mapa) // Método para iniciar el juego con el mapa seleccionado
-    {
-        GameScreen gameScreen = new GameScreen(stage, username, avatar, mapa, conexion);    // Crear una nueva instancia de GameScreen con la información del usuario, el mapa seleccionado y la conexión al servidor
-        gameScreen.show();
+    private void goToWaiting(String mapa) {
+        WaitingScreen waiting = new WaitingScreen(stage, username, avatar, mapa, conexion);
+        waiting.show();
     }
 
 }

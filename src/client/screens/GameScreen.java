@@ -1,7 +1,9 @@
 package client.screens;
 
+import Models.Message;
 import client.ClientConnection;
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -19,48 +21,68 @@ import structures.List;
 
 import java.util.Random;
 
-public class GameScreen 
+public class GameScreen
 {
 
     private static final double W = 750;
     private static final double H = 500;
-    private static final int INITIAL_LIVES = 3;
 
     private final Stage stage;
     private final String username;
     private final String avatar;
     private final String map;
     private final ClientConnection conexion;
+    private final String opponentUsername;
+    private final Message config; // CONFIG recibido del servidor
 
     // Estado del jugador
     private double playerX = W / 2;
-    private int lives = INITIAL_LIVES;
+    private int hp;
     private int score = 0;
     private int blockedAttacks = 0;
     private String activeDefense = "";
     private boolean gameOver = false;
+    private boolean waitingForOpponent = false; // murio pero oponente sigue
+
+    // Estado del oponente (actualizado por el servidor)
+    private int opponentHp;
+    private int opponentScore = 0;
+    private boolean opponentGameOver = false;
+
+    // Dificultad dinamica
+    private int level = 0;
 
     // Teclas presionadas
     private boolean leftDown = false;
     private boolean rightDown = false;
 
-    // Ataques activos — usa List propia (sin ArrayList)
+    // Ataques activos — usa List propia
     private List<AttackObj> attacks = new List<>();
     private Random random = new Random();
+    private double timeSinceLastSpawn = 0;
 
-    // HUD
-    private Label livesLabel;
+
+    // HUD propio
+    private Label hpLabel;
     private Label scoreLabel;
     private Label defenseLabel;
-    private Label blockedLabel;
-    private ProgressBar livesBar;
+    private Label levelLabel;
+    private ProgressBar hpBar;
+
+    // HUD oponente
+    private Label opHpLabel;
+    private Label opScoreLabel;
+    private ProgressBar opHpBar;
+
+    // Timing para envio de estado
+    private long lastStateSent = 0;
+    private static final long STATE_INTERVAL_NS = 500_000_000L; // 0.5s
 
     // Clase interna para ataques
-    private static class AttackObj 
+    private static class AttackObj
     {
         String type;
-        double x, y;
-        double speed;
+        double x, y, speed;
         boolean active;
 
         AttackObj(String type, double x, double y, double speed) {
@@ -76,39 +98,61 @@ public class GameScreen
     }
 
     public GameScreen(Stage stage, String username, String avatar,
-                      String map, ClientConnection conexion) {
+                      String map, ClientConnection conexion, String opponentUsername, Message config) {
         this.stage = stage;
         this.username = username;
         this.avatar = avatar;
         this.map = map;
         this.conexion = conexion;
+        this.opponentUsername = opponentUsername;
+        this.config = config;
     }
 
     public void show() {
 
-        // ---- HUD superior ----
-        HBox hud = new HBox(20);
-        hud.setAlignment(Pos.CENTER_LEFT);
-        hud.setPadding(new Insets(8, 16, 8, 16));
-        hud.setStyle("-fx-background-color: #161b22;");
+        // -- Inicializar TODOS los labels primero ----------
+        hpBar = new ProgressBar(1.0);
+        hpBar.setPrefWidth(100);
+        hpBar.setStyle("-fx-accent: #00ff88;");
+        this.hp         = config.initialHp;
+        this.opponentHp = config.initialHp;
 
-        livesBar = new ProgressBar(1.0);
-        livesBar.setPrefWidth(100);
-        livesBar.setStyle("-fx-accent: #00ff88;");
-
-        livesLabel   = hudLabel("Vidas: " + lives);
+        hpLabel      = hudLabel("HP: " + hp);
         scoreLabel   = hudLabel("Score: 0");
-        defenseLabel = hudLabel("Defensa: Ninguna");
-        blockedLabel = hudLabel("Bloqueados: 0");
+        defenseLabel = hudLabel("Defensa: -");
+        levelLabel   = hudLabel("Nivel: 0");
 
+        opHpBar = new ProgressBar(1.0);
+        opHpBar.setPrefWidth(100);
+        opHpBar.setStyle("-fx-accent: #ff4444;");
+
+        opHpLabel    = hudLabel("HP: " + opponentHp);
+        opHpLabel.setTextFill(Color.web("#ff9900"));
+        opScoreLabel = hudLabel("Score: 0");
+        opScoreLabel.setTextFill(Color.web("#ff9900"));
+
+        Label opName = hudLabel(opponentUsername != null ? opponentUsername : "Oponente");
+        opName.setTextFill(Color.web("#ff9900"));
+
+        // --- Recién ahora crear los HBox ---
+        HBox myHud = new HBox(14);
+        myHud.setAlignment(Pos.CENTER_LEFT);
+        myHud.setPadding(new Insets(8, 16, 8, 16));
+        myHud.setStyle("-fx-background-color: #161b22;");
+        myHud.getChildren().addAll(hpBar, hpLabel, scoreLabel, defenseLabel, levelLabel);
+
+        HBox opHud = new HBox(10);
+        opHud.setAlignment(Pos.CENTER_RIGHT);
+        opHud.setPadding(new Insets(8, 16, 8, 16));
+        opHud.setStyle("-fx-background-color: #1a0d0d;");
+        opHud.getChildren().addAll(opName, opHpBar, opHpLabel, opScoreLabel);
+
+        // ---- Barra superior completa ----
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label mapLabel = hudLabel("Mapa: " + map);
-        mapLabel.setTextFill(Color.web("#58a6ff"));
-
-        hud.getChildren().addAll(livesBar, livesLabel, scoreLabel,
-                defenseLabel, blockedLabel, spacer, mapLabel);
+        HBox topBar = new HBox(0, myHud, spacer, opHud);
+        topBar.setStyle("-fx-background-color: #161b22; -fx-border-color: #30363d; -fx-border-width: 0 0 1 0;");
 
         // ---- Canvas --------
         Canvas canvas = new Canvas(W, H);
@@ -125,7 +169,7 @@ public class GameScreen
                 legendItem("[E]", "Crypto Shield → Cred",   "#00ffff")
         );
 
-        VBox root = new VBox(0, hud, canvas, legend);
+        VBox root = new VBox(0, topBar, canvas, legend);
         root.setStyle("-fx-background-color: black;");
 
         Scene scene = new Scene(root, W, H + 90);
@@ -146,6 +190,7 @@ public class GameScreen
 
         stage.setScene(scene);
         scene.getRoot().requestFocus();
+        startListening();
 
         // ---- Game loop ------
         new AnimationTimer() {
@@ -157,12 +202,74 @@ public class GameScreen
                 double delta = (now - lastTime) / 1_000_000_000.0;
                 lastTime = now;
 
-                if (!gameOver) {
+                if (!gameOver && !waitingForOpponent) {
                     update(delta);
                 }
                 render(gc);
+
+                // Enviar estado cada 0.5s
+                if (now - lastStateSent >= STATE_INTERVAL_NS) {
+                    sendState(false);
+                    lastStateSent = now;
+                }
             }
         }.start();
+    }
+
+    // --- Escuchar mensajes del servidor ------
+
+    private void startListening() {
+        Thread t = new Thread(() -> {
+            try {
+                while (true) {
+                    Message msg = conexion.readMessage();
+                    if (msg == null) break;
+
+                    if ("OPPONENT_STATE".equals(msg.type)) {
+                        Platform.runLater(() -> updateOpponentHUD(msg));
+                    } else if ("SESSION_END".equals(msg.type)) {
+                        Platform.runLater(() -> goToGameOver(msg));
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("[GameScreen] Desconectado del servidor.");
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void updateOpponentHUD(Message msg) {
+        opponentHp      = msg.opponentLives;
+        opponentScore   = msg.opponentScore;
+        opponentGameOver = msg.opponentGameOver;
+
+        opHpLabel.setText("HP: " + opponentHp);
+        opScoreLabel.setText("Score: " + opponentScore);
+        opHpBar.setProgress((double) opponentHp / config.initialHp);
+
+        if (opponentHp <= config.initialHp * 0.3)
+            opHpBar.setStyle("-fx-accent: #ff0000;");
+    }
+
+    private void goToGameOver(Message msg) {
+        GameOverScreen over = new GameOverScreen(
+                stage, username, score, blockedAttacks,
+                opponentUsername, opponentScore, msg.username, conexion
+        );
+        over.show();
+    }
+
+    // ---- Enviar estado al servidor ----
+
+    private void sendState(boolean isGameOver) {
+        Message msg    = new Message();
+        msg.type       = isGameOver ? "GAME_OVER" : "GAME_STATE";
+        msg.username   = username;
+        msg.lives      = hp;
+        msg.score      = score;
+        msg.isGameOver = isGameOver;
+        conexion.sendOnly(msg);
     }
 
     // ---- Lógica del juego -----
@@ -172,13 +279,22 @@ public class GameScreen
         if (leftDown)  playerX = Math.max(20, playerX - 200 * delta);
         if (rightDown) playerX = Math.min(W - 20, playerX + 200 * delta);
 
-        // Generar ataques aleatorios (≈1% por frame a 60fps)
-        if (random.nextInt(100) < 1) {
-            String[] tipos = {"DDoS", "Malware", "Credential"};
-            String tipo = tipos[random.nextInt(3)];
-            double x = 50 + random.nextDouble() * (W - 100);
-            attacks.add(new AttackObj(tipo, x, 0, 1.2 + (score / 200.0)));
+        // Dificultad dinamica
+        int newLevel = score / config.difficultyStepScore;
+        if (newLevel > level) {
+            level = newLevel;
+            Platform.runLater(() -> levelLabel.setText("Nivel: " + level));
         }
+
+        // Spawn usando CONFIG
+        double spawnRate = config.baseSpawnRate
+                * Math.pow(config.spawnMultiplierPerLevel, level);
+        timeSinceLastSpawn += delta;
+        if (timeSinceLastSpawn >= 1.0 / spawnRate) {
+            spawnAttack();
+            timeSinceLastSpawn = 0;
+        }
+
 
         // Mover ataques y revisar colisiones
         List<Integer> toRemove = new List<>();
@@ -191,7 +307,7 @@ public class GameScreen
                 continue;
             }
 
-            // Colisión con el jugador
+            // Colision con el jugador
             if (a.y >= H - 60 && Math.abs(a.x - playerX) < 40) {
                 if (a.type.equals(activeDefense)) {
                     // Defensa correcta
@@ -199,15 +315,16 @@ public class GameScreen
                     blockedAttacks++;
                     a.active = false;
                     toRemove.add(i);
-                    updateHUD();
+                    updateMyHUD();
                 } else {
-                    // Defensa incorrecta o sin defensa
-                    lives--;
+                    // Daño segun tipo
+                    int damage = getDamage(a.type);
+                    hp = Math.max(0, hp - damage);
                     a.active = false;
                     toRemove.add(i);
-                    updateHUD();
-                    if (lives <= 0) triggerGameOver();
+                    if (hp <= 0) triggerGameOver();
                 }
+                Platform.runLater(this::updateMyHUD);
             }
         }
 
@@ -217,30 +334,41 @@ public class GameScreen
         }
     }
 
+
+    private void spawnAttack() {
+        String[] tipos = {"DDoS", "Malware", "Credential"};
+        String tipo = tipos[random.nextInt(3)];
+        double x     = 50 + random.nextDouble() * (W - 100);
+        double speed = config.baseAttackSpeed + config.speedAddPerLevel * level;
+        attacks.add(new AttackObj(tipo, x, 0, speed));
+    }
+
+    private int getDamage(String type) {
+        switch (type) {
+            case "DDoS":       return config.damageDDoS;
+            case "Malware":    return config.damageMalware;
+            case "Credential": return config.damageCredential;
+            default:           return 5;
+        }
+    }
+
     private void activateDefense(String type) {
         activeDefense = type;
         defenseLabel.setText("Defensa: " + type);
     }
 
-    private void updateHUD() {
-        livesLabel.setText("Vidas: " + lives);
+    private void updateMyHUD() {
+        hpLabel.setText("HP: " + hp);
         scoreLabel.setText("Score: " + score);
-        blockedLabel.setText("Bloqueados: " + blockedAttacks);
-        livesBar.setProgress((double) lives / INITIAL_LIVES);
-        if (lives == 1) livesBar.setStyle("-fx-accent: #ff4444;");
-        else if (lives == 2) livesBar.setStyle("-fx-accent: #ffaa00;");
+        hpBar.setProgress((double) hp / config.initialHp);
+        if (hp <= config.initialHp * 0.3) hpBar.setStyle("-fx-accent: #ff4444;");
+        else if (hp <= config.initialHp * 0.6) hpBar.setStyle("-fx-accent: #ffaa00;");
     }
 
     private void triggerGameOver() {
         gameOver = true;
-        // Transición a GameOverScreen después de 2 segundos
-        new Thread(() -> {
-            try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-            javafx.application.Platform.runLater(() -> {
-                GameOverScreen over = new GameOverScreen(stage, username, score, blockedAttacks, conexion);
-                over.show();
-            });
-        }).start();
+        waitingForOpponent = !opponentGameOver;
+        sendState(true); // avisar al servidor
     }
 
     // ------ Renderizado --------
@@ -264,26 +392,45 @@ public class GameScreen
             drawAttack(gc, a);
         }
 
-        // Dibujar jugador (triángulo)
-        gc.setFill(Color.web("#00ff88"));
-        double[] xs = {playerX, playerX - 22, playerX + 22};
-        double[] ys = {H - 40, H - 10, H - 10};
-        gc.fillPolygon(xs, ys, 3);
 
-        // Nombre del avatar sobre el jugador
-        gc.setFill(Color.web("#c9d1d9"));
-        gc.setFont(Font.font("Verdana", 10));
-        gc.fillText(avatar, playerX - 30, H - 45);
 
-        // Defensa activa visual
-        if (!activeDefense.isEmpty()) {
-            gc.setStroke(defenseColor(activeDefense));
-            gc.setLineWidth(2);
-            gc.strokeOval(playerX - 35, H - 55, 70, 50);
+
+        // Jugador
+        if (!gameOver) {
+            gc.setFill(Color.web("#00ff88"));
+            gc.fillPolygon(
+                    new double[]{playerX, playerX - 22, playerX + 22},
+                    new double[]{H - 40, H - 10, H - 10},
+                    3
+            );
+            gc.setFill(Color.web("#c9d1d9"));
+            gc.setFont(Font.font("Verdana", 10));
+            gc.fillText(avatar, playerX - 30, H - 45);
+
+            if (!activeDefense.isEmpty()) {
+                gc.setStroke(defenseColor(activeDefense));
+                gc.setLineWidth(2);
+                gc.strokeOval(playerX - 35, H - 55, 70, 50);
+            }
+        }
+
+        // Overlay: murió pero espera al oponente
+        if (waitingForOpponent) {
+            gc.setFill(Color.color(0, 0, 0, 0.75));
+            gc.fillRect(0, 0, W, H);
+            gc.setFill(Color.web("#ff4444"));
+            gc.setFont(Font.font("Verdana", FontWeight.BOLD, 36));
+            gc.fillText("GAME OVER", W / 2 - 110, H / 2 - 20);
+            gc.setFill(Color.web("#ffaa00"));
+            gc.setFont(Font.font("Verdana", 18));
+            gc.fillText("Esperando a " + opponentUsername + "...", W / 2 - 130, H / 2 + 30);
+            gc.setFill(Color.web("#c9d1d9"));
+            gc.setFont(Font.font("Verdana", 14));
+            gc.fillText("Tu score: " + score, W / 2 - 50, H / 2 + 65);
         }
 
         // Game Over overlay
-        if (gameOver) {
+        if (gameOver && !waitingForOpponent && opponentUsername == null) {
             gc.setFill(Color.color(0, 0, 0, 0.75));
             gc.fillRect(0, 0, W, H);
             gc.setFill(Color.web("#ff4444"));

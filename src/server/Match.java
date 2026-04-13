@@ -25,23 +25,26 @@ public class Match {
             System.out.println("[MatchManager] Partida: "
                     + p1.getUsername() + " vs " + p2.getUsername());
 
-            // Asignar oponentes mutuamente
-            p1.setOpponent(p2);
-            p2.setOpponent(p1);
+            // ← correr en thread separado para no bloquear los ClientHandlers
+            new Thread(() -> {
+                p1.setOpponent(p2);
+                p2.setOpponent(p1);
 
-            // Enviar MATCH_FOUND a ambos
-            Message matchFound = new Message();
-            matchFound.type = "MATCH_FOUND";
-            matchFound.opponentUsername = p2.getUsername();
-            p1.sendMessage(matchFound);
+                Message matchFound = new Message();
+                matchFound.type = "MATCH_FOUND";
+                matchFound.opponentUsername = p2.getUsername();
+                p1.sendMessage(matchFound);
+                System.out.println("[MatchManager] MATCH_FOUND enviado a: " + p1.getUsername());
 
-            matchFound.opponentUsername = p1.getUsername();
-            p2.sendMessage(matchFound);
+                matchFound.opponentUsername = p1.getUsername();
+                p2.sendMessage(matchFound);
+                System.out.println("[MatchManager] MATCH_FOUND enviado a: " + p2.getUsername());
 
-            // Enviar CONFIG a ambos
-            Message config = buildConfig();
-            p1.sendMessage(config);
-            p2.sendMessage(config);
+                Message config = buildConfig();
+                p1.sendMessage(config);
+                p2.sendMessage(config);
+                System.out.println("[MatchManager] CONFIG enviado a ambos");
+            }).start();
         }
     }
 
