@@ -8,5 +8,25 @@
     "xpNetwork": 0,
     "xpMalware": 0,
     "xpCrypto": 0
+  },
+  {
+    "username": "q",
+    "passwordHash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+    "avatar": "Crypto Llama",
+    "totalScore": 30,
+    "gamesPlayed": 5,
+    "xpNetwork": 0,
+    "xpMalware": 0,
+    "xpCrypto": 0
+  },
+  {
+    "username": "w",
+    "passwordHash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+    "avatar": "Crypto Llama",
+    "totalScore": 80,
+    "gamesPlayed": 5,
+    "xpNetwork": 0,
+    "xpMalware": 0,
+    "xpCrypto": 0
   }
 ]

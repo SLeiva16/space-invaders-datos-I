@@ -42,21 +42,21 @@ public class GameScreen
     private int blockedAttacks = 0;
     private String activeDefense = "";
     private boolean gameOver = false;
-    private boolean waitingForOpponent = false; // murió pero oponente sigue
+    private boolean waitingForOpponent = false; // murio pero oponente sigue
 
     // Estado del oponente (actualizado por el servidor)
     private int opponentHp;
     private int opponentScore = 0;
     private boolean opponentGameOver = false;
 
-    // Dificultad dinámica
+    // Dificultad dinamica
     private int level = 0;
 
     // Teclas presionadas
     private boolean leftDown = false;
     private boolean rightDown = false;
 
-    // Ataques activos — usa List propia (sin ArrayList)
+    // Ataques activos — usa List propia
     private List<AttackObj> attacks = new List<>();
     private Random random = new Random();
     private double timeSinceLastSpawn = 0;
@@ -74,7 +74,7 @@ public class GameScreen
     private Label opScoreLabel;
     private ProgressBar opHpBar;
 
-    // Timing para envío de estado
+    // Timing para envio de estado
     private long lastStateSent = 0;
     private static final long STATE_INTERVAL_NS = 500_000_000L; // 0.5s
 
@@ -110,7 +110,18 @@ public class GameScreen
 
     public void show() {
 
-        // --- HUD oponente (derecha) -----
+        // -- Inicializar TODOS los labels primero ----------
+        hpBar = new ProgressBar(1.0);
+        hpBar.setPrefWidth(100);
+        hpBar.setStyle("-fx-accent: #00ff88;");
+        this.hp         = config.initialHp;
+        this.opponentHp = config.initialHp;
+
+        hpLabel      = hudLabel("HP: " + hp);
+        scoreLabel   = hudLabel("Score: 0");
+        defenseLabel = hudLabel("Defensa: -");
+        levelLabel   = hudLabel("Nivel: 0");
+
         opHpBar = new ProgressBar(1.0);
         opHpBar.setPrefWidth(100);
         opHpBar.setStyle("-fx-accent: #ff4444;");
@@ -123,6 +134,7 @@ public class GameScreen
         Label opName = hudLabel(opponentUsername != null ? opponentUsername : "Oponente");
         opName.setTextFill(Color.web("#ff9900"));
 
+        // --- Recién ahora crear los HBox ---
         HBox myHud = new HBox(14);
         myHud.setAlignment(Pos.CENTER_LEFT);
         myHud.setPadding(new Insets(8, 16, 8, 16));
@@ -178,6 +190,7 @@ public class GameScreen
 
         stage.setScene(scene);
         scene.getRoot().requestFocus();
+        startListening();
 
         // ---- Game loop ------
         new AnimationTimer() {
@@ -266,7 +279,7 @@ public class GameScreen
         if (leftDown)  playerX = Math.max(20, playerX - 200 * delta);
         if (rightDown) playerX = Math.min(W - 20, playerX + 200 * delta);
 
-        // Dificultad dinámica
+        // Dificultad dinamica
         int newLevel = score / config.difficultyStepScore;
         if (newLevel > level) {
             level = newLevel;
@@ -294,7 +307,7 @@ public class GameScreen
                 continue;
             }
 
-            // Colisión con el jugador
+            // Colision con el jugador
             if (a.y >= H - 60 && Math.abs(a.x - playerX) < 40) {
                 if (a.type.equals(activeDefense)) {
                     // Defensa correcta
@@ -304,7 +317,7 @@ public class GameScreen
                     toRemove.add(i);
                     updateMyHUD();
                 } else {
-                    // Daño según tipo
+                    // Daño segun tipo
                     int damage = getDamage(a.type);
                     hp = Math.max(0, hp - damage);
                     a.active = false;

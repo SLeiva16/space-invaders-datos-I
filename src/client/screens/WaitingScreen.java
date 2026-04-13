@@ -71,17 +71,19 @@ public class WaitingScreen {
 
                 while (matchFound == null || config == null) {
                     Message incoming = conexion.readMessage();
-                    if (incoming == null) break;
+                    if (incoming == null) {
+                        System.out.println("[WaitingScreen] readMessage retornó null");
+                        break;
+                    }
+                    System.out.println("[WaitingScreen] Recibido: " + incoming.type);
 
                     if ("MATCH_FOUND".equals(incoming.type)) {
                         matchFound = incoming;
-                        Platform.runLater(() ->
-                                waiting.setText("Oponente encontrado! Cargando..."));
-                    }
-                    if ("CONFIG".equals(incoming.type)) {
+                    } else if ("CONFIG".equals(incoming.type)) {
                         config = incoming;
                     }
                 }
+                System.out.println("[WaitingScreen] Salió del loop - matchFound=" + matchFound + " config=" + config);
 
                 if (matchFound != null && config != null) {
                     final Message finalConfig     = config;
